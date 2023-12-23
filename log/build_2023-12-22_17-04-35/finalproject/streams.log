@@ -1,0 +1,29 @@
+[0.686s] Invoking command in '/home/tony/Course/Final_ws/src/finalproject': PYTHONPATH=/home/tony/Course/Final_ws/build/finalproject/prefix_override:/home/tony/Course/Final_ws/install/finalproject/lib/python3.10/site-packages:${PYTHONPATH} /usr/bin/python3 setup.py egg_info --egg-base ../../build/finalproject build --build-base /home/tony/Course/Final_ws/build/finalproject/build install --record /home/tony/Course/Final_ws/build/finalproject/install.log --single-version-externally-managed
+[0.948s] running egg_info
+[0.948s] writing ../../build/finalproject/finalproject.egg-info/PKG-INFO
+[0.949s] writing dependency_links to ../../build/finalproject/finalproject.egg-info/dependency_links.txt
+[0.949s] writing entry points to ../../build/finalproject/finalproject.egg-info/entry_points.txt
+[0.950s] writing requirements to ../../build/finalproject/finalproject.egg-info/requires.txt
+[0.950s] writing top-level names to ../../build/finalproject/finalproject.egg-info/top_level.txt
+[0.952s] reading manifest file '../../build/finalproject/finalproject.egg-info/SOURCES.txt'
+[0.952s] writing manifest file '../../build/finalproject/finalproject.egg-info/SOURCES.txt'
+[0.953s] running build
+[0.953s] running build_py
+[0.954s] copying finalproject/combine.py -> /home/tony/Course/Final_ws/build/finalproject/build/lib/finalproject
+[0.954s] copying finalproject/armControl.py -> /home/tony/Course/Final_ws/build/finalproject/build/lib/finalproject
+[0.954s] running install
+[0.954s] running install_lib
+[0.955s] copying /home/tony/Course/Final_ws/build/finalproject/build/lib/finalproject/combine.py -> /home/tony/Course/Final_ws/install/finalproject/lib/python3.10/site-packages/finalproject
+[0.955s] copying /home/tony/Course/Final_ws/build/finalproject/build/lib/finalproject/armControl.py -> /home/tony/Course/Final_ws/install/finalproject/lib/python3.10/site-packages/finalproject
+[0.955s] byte-compiling /home/tony/Course/Final_ws/install/finalproject/lib/python3.10/site-packages/finalproject/combine.py to combine.cpython-310.pyc
+[0.956s] byte-compiling /home/tony/Course/Final_ws/install/finalproject/lib/python3.10/site-packages/finalproject/armControl.py to armControl.cpython-310.pyc
+[0.959s] running install_data
+[0.959s] running install_egg_info
+[0.960s] removing '/home/tony/Course/Final_ws/install/finalproject/lib/python3.10/site-packages/finalproject-0.0.0-py3.10.egg-info' (and everything under it)
+[0.961s] Copying ../../build/finalproject/finalproject.egg-info to /home/tony/Course/Final_ws/install/finalproject/lib/python3.10/site-packages/finalproject-0.0.0-py3.10.egg-info
+[0.961s] running install_scripts
+[0.980s] Installing armControl script to /home/tony/Course/Final_ws/install/finalproject/lib/finalproject
+[0.980s] Installing combine script to /home/tony/Course/Final_ws/install/finalproject/lib/finalproject
+[0.980s] Installing navigator script to /home/tony/Course/Final_ws/install/finalproject/lib/finalproject
+[0.981s] writing list of installed files to '/home/tony/Course/Final_ws/build/finalproject/install.log'
+[1.013s] Invoked command in '/home/tony/Course/Final_ws/src/finalproject' returned '0': PYTHONPATH=/home/tony/Course/Final_ws/build/finalproject/prefix_override:/home/tony/Course/Final_ws/install/finalproject/lib/python3.10/site-packages:${PYTHONPATH} /usr/bin/python3 setup.py egg_info --egg-base ../../build/finalproject build --build-base /home/tony/Course/Final_ws/build/finalproject/build install --record /home/tony/Course/Final_ws/build/finalproject/install.log --single-version-externally-managed

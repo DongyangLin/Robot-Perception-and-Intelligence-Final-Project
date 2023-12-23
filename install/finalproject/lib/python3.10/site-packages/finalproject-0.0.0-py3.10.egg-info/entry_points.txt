@@ -1,0 +1,5 @@
+[console_scripts]
+armControl = finalproject.armControl:main
+combine = finalproject.combine:main
+navigator = finalproject.navigator:main
+

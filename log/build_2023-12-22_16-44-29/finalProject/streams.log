@@ -1,0 +1,37 @@
+[0.608s] Invoking command in '/home/tony/Course/Final_ws/src/finalProject': PYTHONPATH=/home/tony/Course/Final_ws/build/finalProject/prefix_override:/home/tony/Course/Final_ws/install/finalProject/lib/python3.10/site-packages:${PYTHONPATH} /usr/bin/python3 setup.py egg_info --egg-base ../../build/finalProject build --build-base /home/tony/Course/Final_ws/build/finalProject/build install --record /home/tony/Course/Final_ws/build/finalProject/install.log --single-version-externally-managed
+[0.811s] running egg_info
+[0.812s] creating ../../build/finalProject/finalProject.egg-info
+[0.812s] writing ../../build/finalProject/finalProject.egg-info/PKG-INFO
+[0.812s] writing dependency_links to ../../build/finalProject/finalProject.egg-info/dependency_links.txt
+[0.812s] writing entry points to ../../build/finalProject/finalProject.egg-info/entry_points.txt
+[0.812s] writing requirements to ../../build/finalProject/finalProject.egg-info/requires.txt
+[0.812s] writing top-level names to ../../build/finalProject/finalProject.egg-info/top_level.txt
+[0.812s] writing manifest file '../../build/finalProject/finalProject.egg-info/SOURCES.txt'
+[0.814s] reading manifest file '../../build/finalProject/finalProject.egg-info/SOURCES.txt'
+[0.814s] writing manifest file '../../build/finalProject/finalProject.egg-info/SOURCES.txt'
+[0.814s] running build
+[0.814s] running build_py
+[0.815s] creating /home/tony/Course/Final_ws/build/finalProject/build
+[0.815s] creating /home/tony/Course/Final_ws/build/finalProject/build/lib
+[0.815s] creating /home/tony/Course/Final_ws/build/finalProject/build/lib/finalProject
+[0.815s] copying finalProject/__init__.py -> /home/tony/Course/Final_ws/build/finalProject/build/lib/finalProject
+[0.815s] copying finalProject/navigator.py -> /home/tony/Course/Final_ws/build/finalProject/build/lib/finalProject
+[0.815s] running install
+[0.815s] running install_lib
+[0.815s] creating /home/tony/Course/Final_ws/install/finalProject/lib/python3.10/site-packages/finalProject
+[0.816s] copying /home/tony/Course/Final_ws/build/finalProject/build/lib/finalProject/__init__.py -> /home/tony/Course/Final_ws/install/finalProject/lib/python3.10/site-packages/finalProject
+[0.816s] copying /home/tony/Course/Final_ws/build/finalProject/build/lib/finalProject/navigator.py -> /home/tony/Course/Final_ws/install/finalProject/lib/python3.10/site-packages/finalProject
+[0.816s] byte-compiling /home/tony/Course/Final_ws/install/finalProject/lib/python3.10/site-packages/finalProject/__init__.py to __init__.cpython-310.pyc
+[0.816s] byte-compiling /home/tony/Course/Final_ws/install/finalProject/lib/python3.10/site-packages/finalProject/navigator.py to navigator.cpython-310.pyc
+[0.816s] running install_data
+[0.817s] creating /home/tony/Course/Final_ws/install/finalProject/share/ament_index
+[0.817s] creating /home/tony/Course/Final_ws/install/finalProject/share/ament_index/resource_index
+[0.817s] creating /home/tony/Course/Final_ws/install/finalProject/share/ament_index/resource_index/packages
+[0.817s] copying resource/finalProject -> /home/tony/Course/Final_ws/install/finalProject/share/ament_index/resource_index/packages
+[0.817s] copying package.xml -> /home/tony/Course/Final_ws/install/finalProject/share/finalProject
+[0.817s] running install_egg_info
+[0.818s] Copying ../../build/finalProject/finalProject.egg-info to /home/tony/Course/Final_ws/install/finalProject/lib/python3.10/site-packages/finalProject-0.0.0-py3.10.egg-info
+[0.818s] running install_scripts
+[0.835s] Installing navigator script to /home/tony/Course/Final_ws/install/finalProject/lib/finalProject
+[0.835s] writing list of installed files to '/home/tony/Course/Final_ws/build/finalProject/install.log'
+[0.855s] Invoked command in '/home/tony/Course/Final_ws/src/finalProject' returned '0': PYTHONPATH=/home/tony/Course/Final_ws/build/finalProject/prefix_override:/home/tony/Course/Final_ws/install/finalProject/lib/python3.10/site-packages:${PYTHONPATH} /usr/bin/python3 setup.py egg_info --egg-base ../../build/finalProject build --build-base /home/tony/Course/Final_ws/build/finalProject/build install --record /home/tony/Course/Final_ws/build/finalProject/install.log --single-version-externally-managed

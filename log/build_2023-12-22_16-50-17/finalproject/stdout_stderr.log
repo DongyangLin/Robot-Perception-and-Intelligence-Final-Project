@@ -1,0 +1,19 @@
+running egg_info
+writing ../../build/finalproject/finalproject.egg-info/PKG-INFO
+writing dependency_links to ../../build/finalproject/finalproject.egg-info/dependency_links.txt
+writing entry points to ../../build/finalproject/finalproject.egg-info/entry_points.txt
+writing requirements to ../../build/finalproject/finalproject.egg-info/requires.txt
+writing top-level names to ../../build/finalproject/finalproject.egg-info/top_level.txt
+reading manifest file '../../build/finalproject/finalproject.egg-info/SOURCES.txt'
+writing manifest file '../../build/finalproject/finalproject.egg-info/SOURCES.txt'
+running build
+running build_py
+running install
+running install_lib
+running install_data
+running install_egg_info
+removing '/home/tony/Course/Final_ws/install/finalproject/lib/python3.10/site-packages/finalproject-0.0.0-py3.10.egg-info' (and everything under it)
+Copying ../../build/finalproject/finalproject.egg-info to /home/tony/Course/Final_ws/install/finalproject/lib/python3.10/site-packages/finalproject-0.0.0-py3.10.egg-info
+running install_scripts
+Installing navigator script to /home/tony/Course/Final_ws/install/finalproject/lib/finalproject
+writing list of installed files to '/home/tony/Course/Final_ws/build/finalproject/install.log'

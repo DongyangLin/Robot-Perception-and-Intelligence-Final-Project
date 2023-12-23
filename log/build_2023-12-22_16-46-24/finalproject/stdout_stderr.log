@@ -1,0 +1,35 @@
+running egg_info
+creating ../../build/finalproject/finalproject.egg-info
+writing ../../build/finalproject/finalproject.egg-info/PKG-INFO
+writing dependency_links to ../../build/finalproject/finalproject.egg-info/dependency_links.txt
+writing entry points to ../../build/finalproject/finalproject.egg-info/entry_points.txt
+writing requirements to ../../build/finalproject/finalproject.egg-info/requires.txt
+writing top-level names to ../../build/finalproject/finalproject.egg-info/top_level.txt
+writing manifest file '../../build/finalproject/finalproject.egg-info/SOURCES.txt'
+reading manifest file '../../build/finalproject/finalproject.egg-info/SOURCES.txt'
+writing manifest file '../../build/finalproject/finalproject.egg-info/SOURCES.txt'
+running build
+running build_py
+creating /home/tony/Course/Final_ws/build/finalproject/build
+creating /home/tony/Course/Final_ws/build/finalproject/build/lib
+creating /home/tony/Course/Final_ws/build/finalproject/build/lib/finalproject
+copying finalproject/__init__.py -> /home/tony/Course/Final_ws/build/finalproject/build/lib/finalproject
+copying finalproject/navigator.py -> /home/tony/Course/Final_ws/build/finalproject/build/lib/finalproject
+running install
+running install_lib
+creating /home/tony/Course/Final_ws/install/finalproject/lib/python3.10/site-packages/finalproject
+copying /home/tony/Course/Final_ws/build/finalproject/build/lib/finalproject/__init__.py -> /home/tony/Course/Final_ws/install/finalproject/lib/python3.10/site-packages/finalproject
+copying /home/tony/Course/Final_ws/build/finalproject/build/lib/finalproject/navigator.py -> /home/tony/Course/Final_ws/install/finalproject/lib/python3.10/site-packages/finalproject
+byte-compiling /home/tony/Course/Final_ws/install/finalproject/lib/python3.10/site-packages/finalproject/__init__.py to __init__.cpython-310.pyc
+byte-compiling /home/tony/Course/Final_ws/install/finalproject/lib/python3.10/site-packages/finalproject/navigator.py to navigator.cpython-310.pyc
+running install_data
+creating /home/tony/Course/Final_ws/install/finalproject/share/ament_index
+creating /home/tony/Course/Final_ws/install/finalproject/share/ament_index/resource_index
+creating /home/tony/Course/Final_ws/install/finalproject/share/ament_index/resource_index/packages
+copying resource/finalproject -> /home/tony/Course/Final_ws/install/finalproject/share/ament_index/resource_index/packages
+copying package.xml -> /home/tony/Course/Final_ws/install/finalproject/share/finalproject
+running install_egg_info
+Copying ../../build/finalproject/finalproject.egg-info to /home/tony/Course/Final_ws/install/finalproject/lib/python3.10/site-packages/finalproject-0.0.0-py3.10.egg-info
+running install_scripts
+Installing navigator script to /home/tony/Course/Final_ws/install/finalproject/lib/finalproject
+writing list of installed files to '/home/tony/Course/Final_ws/build/finalproject/install.log'
