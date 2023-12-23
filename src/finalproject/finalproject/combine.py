@@ -96,20 +96,20 @@ def main():
     navigator.publishInfo(0)
     navigator.waitUntilNav2Active()
     navigator.changeMap('/home/tony/map_project/map.yaml')  # map:=$HOME/map_project/map.yaml
-    A2B_pose_setup(navigator,goal_pose)
-    # navigator.publishInfo(1)
+    S2A_pose_setup(navigator,goal_pose)
+    navigator.publishInfo(1)
     time.sleep(1)
-    # while True:
-    #     # print(navigator.instruction)
-    #     rclpy.spin_once(navigator)
-    #     if navigator.instruction==1:
-    #         rotate(navigator,goal_pose)
-    #         A2B_pose_setup(navigator,goal_pose)
-    #         navigator.publishInfo(2)
-    #         time.sleep(1)
-    #     elif navigator.instruction==2:
-    #         B2S_pose_setup(navigator,goal_pose)
-    #         exit(0)
+    while True:
+        # print(navigator.instruction)
+        rclpy.spin_once(navigator)
+        if navigator.instruction==1:
+            rotate(navigator,goal_pose)
+            A2B_pose_setup(navigator,goal_pose)
+            navigator.publishInfo(2)
+            time.sleep(1)
+        elif navigator.instruction==2:
+            B2S_pose_setup(navigator,goal_pose)
+            exit(0)
     
     # # A2B_pose_setup(navigator,goal_pose)
     # # B2S_pose_setup(navigator,goal_pose)
