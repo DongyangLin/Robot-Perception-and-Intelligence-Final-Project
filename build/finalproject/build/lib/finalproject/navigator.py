@@ -41,7 +41,9 @@ class BasicNavigator(Node):
         self.result_future = None
         self.feedback = None
         self.status = None
-
+        self.state=0
+        self.instruction=0
+        
         amcl_pose_qos = QoSProfile(
           durability=QoSDurabilityPolicy.TRANSIENT_LOCAL,
           reliability=QoSReliabilityPolicy.RELIABLE,
@@ -79,64 +81,18 @@ class BasicNavigator(Node):
         self.get_costmap_local_srv = self.create_client(GetCostmap, '/local_costmap/get_costmap')
         
         self.arm_publisher=self.create_publisher(Int32,'arm_topic',10)
-        self.state=0
-        self.pub_timer=self.create_timer(0.5,self.move)
-        
-    def creat_pose(self,x,y,z,w):
-        pose=PoseStamped()
-        pose.header.frame_id = 'map'
-        pose.header.stamp = self.get_clock().now().to_msg()
-        pose.pose.position.x = x
-        pose.pose.position.y = y
-        pose.pose.orientation.z = z
-        pose.pose.orientation.w = w
-        return pose
+        self.arm_subscriber=self.create_subscription(Int32,'nav_topic',self.getInstruction,10)
     
-    def move(self):
-        try:
-            # Init the pose
-            if self.state==0:
-                init_pose=self.creat_pose(0.27,-0.38,-0.68,0.72)
-                self.setInitialPose(init_pose)
-                self.waitUntilNav2Active()
-                self.changeMap('/home/tony/map_project/map.yaml')
-                self.state+=1
-            # S to A
-            elif self.state==1:
-                A_pose=self.creat_pose(0.30,-2.90,-0.68,0.72)
-                self.goToPose(A_pose)
-                result=self.getResult()
-                if result==TaskResult.SUCCEEDED:
-                    msg=Int32()
-                    msg=self.state
-                    self.arm_publisher.publish(msg)
-                    """
-                    Need to see if the arm has completed grasping object 
-                    """
-                    self.state+=1
-            # S to B
-            elif self.state==2:
-                B_pose=self.creat_pose(2.5,-3.2,0.68,-0.72)
-                self.goToPose(B_pose)
-                result=self.getResult()
-                if result==TaskResult.SUCCEEDED:
-                    msg=Int32()
-                    msg=self.state
-                    self.arm_publisher.publish(msg)
-                    """
-                    Need to see if the arm has completed releasing object
-                    """
-                    self.state+=1
-            # B to S
-            elif self.state==3:
-                init_pose=self.creat_pose(0.27,-0.38,-0.68,0.72)
-                self.goToPose(init_pose)
-                result=self.getResult()
-                if result==TaskResult.SUCCEEDED:
-                    self.state+=1
-        except:
-            print("Error!")
-        pass
+    
+    def getInstruction(self,msg):
+        print("Navigator successfully get instruction!")
+        self.instruction=msg.data
+    
+    def publishInfo(self,x):
+        msg=Int32()
+        msg.data=x
+        self.arm_publisher.publish(msg)
+        print("Successfully publish arm_instruction!")
     
     def destroyNode(self):
         self.destroy_node()
@@ -157,9 +113,6 @@ class BasicNavigator(Node):
         """Set the initial pose to the localization system."""
         self.initial_pose_received = False
         self.initial_pose = initial_pose
-        msg=Int32()
-        msg.data=0
-        self.arm_publisher.publish(msg)
         self._setInitialPose()
 
     def goThroughPoses(self, poses, behavior_tree=''):
@@ -350,9 +303,6 @@ class BasicNavigator(Node):
     def getResult(self):
         """Get the pending action result message."""
         if self.status == GoalStatus.STATUS_SUCCEEDED:
-            msg= Int32()
-            msg.data=1
-            self.arm_publisher.publish(msg)
             return TaskResult.SUCCEEDED
         elif self.status == GoalStatus.STATUS_ABORTED:
             return TaskResult.FAILED
@@ -644,12 +594,80 @@ class BasicNavigator(Node):
     def debug(self, msg):
         self.get_logger().debug(msg)
         return
+    
+    
+def create_pose(navigator,point):
+    pose = PoseStamped()
+    pose.header.frame_id = 'map'
+    pose.header.stamp = navigator.get_clock().now().to_msg()
+    pose.pose.position.x = point[0]
+    pose.pose.position.y = point[1]
+    pose.pose.orientation.z = point[2]
+    pose.pose.orientation.w = point[3]
+    return pose
+
+def go_to_pose(navigator,point):
+    navigator.goToPose(create_pose(navigator,point))
+    check_task_complete(navigator)
+
+def initial_pose_setup(navigator,initial_pose):
+    navigator.setInitialPose(create_pose(navigator,initial_pose))
+
+
+def check_task_complete(navigator):
+    i=0
+    while not navigator.isTaskComplete():
+        i=i+1
+        feedback = navigator.getFeedback()
+        if feedback and i%5==0:
+            print(
+                'Estimated time of arrival: '+ '{0:.0f}'.format(
+                    rclpyDuration.from_msg(feedback.estimated_time_remaining).nanoseconds/ 1e9
+                ) + ' seconds.'
+            )
+            if rclpyDuration.from_msg(feedback.navigation_time) > rclpyDuration(seconds=600.0):
+                navigator.cancelTask()
+    result = navigator.getResult()
+    if result == TaskResult.SUCCEEDED:
+        print('Goal succeeded!')
+    elif result == TaskResult.CANCELED:
+        print('Goal was canceled!')
+    elif result == TaskResult.FAILED:
+        print('Goal failed!')
+    else:
+        print('Goal has an invalid return status!')
 
 def main():
-    rclpy.init(args=None)
-    navigator=BasicNavigator()
-    rclpy.spin(navigator)
-    rclpy.shutdown()
+    rclpy.init()
+    S=[0.27,-0.38,0.707,-0.707]
+    A=[0.27,-3.2,0.707,-0.707]
+    A1=[0.27,-3.2,0.0,1.0]
+    B=[2.7,-3.2,0.707,0.707]
+    navigator = BasicNavigator()
+    rotate=True
+    ## You may use the navigator to clear or obtain costmaps
+    # navigator.clearAllCostmaps()  # also have clearLocalCostmap() and clearGlobalCostmap()
+    # global_costmap = navigator.getGlobalCostmap()
+    # local_costmap = navigator.getLocalCostmap()
+    initial_pose_setup(navigator,S)
+    navigator.publishInfo(0)
+    navigator.waitUntilNav2Active()
+    navigator.changeMap('/home/tony/map_project/map.yaml')  # map:=$HOME/map_project/map.yaml
+    go_to_pose(navigator,A)
+    navigator.publishInfo(1)
+    time.sleep(1)
+    while True:
+        rclpy.spin_once(navigator)
+        if navigator.instruction==1:
+            if rotate:
+                go_to_pose(navigator,A1)
+                rotate=False
+            go_to_pose(navigator,B)
+            navigator.publishInfo(2)
+            time.sleep(1)
+        elif navigator.instruction==2:
+            go_to_pose(navigator,S)
+            exit(0)
 
 if __name__ == '__main__':
     main()

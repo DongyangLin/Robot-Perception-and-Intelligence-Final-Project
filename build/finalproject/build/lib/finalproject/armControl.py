@@ -11,7 +11,7 @@ from interbotix_xs_modules.xs_robot import mr_descriptions as mrd
 from geometry_msgs.msg import PoseArray, Pose, TransformStamped
 import math
 from pan_tilt_msgs.msg import PanTiltCmdDeg
-
+from std_msgs.msg import Int32
 
 
 def create_pose_matrix(theta, translation):
@@ -42,7 +42,8 @@ class ArmController(Node):
         self.cam=self.create_subscription(PoseArray,"/aruco_poses",self.cam2arm,10)
         self.pantil_deg_cmd=PanTiltCmdDeg()
         self.pantil_pub=self.create_publisher(PanTiltCmdDeg,"/pan_tilt_cmd_deg",10)
-        
+        self.nav_subscriber = self.create_subscription(Int32, 'arm_topic', self.getInstruction, 10)
+        self.nav_publisher = self.create_publisher(Int32, 'nav_topic', 10)
         self.pub_timer = self.create_timer(0.5, self.control)
         
         self.tf_buffer=Buffer()
@@ -50,7 +51,7 @@ class ArmController(Node):
 
         self.arm_command = JointSingleCommand()
         self.arm_group_command = JointGroupCommand()
-        
+        self.instruction=0
         self.num=0
         
         self.joint_flag=[False,False,False]
@@ -67,8 +68,8 @@ class ArmController(Node):
         self.initial_guesses[2][0] = np.deg2rad(30)
         self.robot_des: mrd.ModernRoboticsDescription = getattr(mrd, 'px100')
         
+        self.release_flag=True
         self.up=True
-        
         self.machine_state = "INIT"
 
         self.gripper_pressure: float = 0.5
@@ -110,6 +111,10 @@ class ArmController(Node):
         transform_stamped_msg.transform.rotation.w = self.cam_rw
         self.tf_buffer.set_transform(transform_stamped_msg,self.get_name())
 
+
+    def getInstruction(self,msg):
+        print("Arm successfully get instruction!")
+        self.instruction=msg.data
 
     def set_single_pos(self, name, pos, blocking=True):#return whether it is controlled or not
         '''
@@ -282,44 +287,60 @@ class ArmController(Node):
                 pos=joint_pos[3]
         if self.set_single_pos (name,pos)==True:
             self.num+=1
+    
+    def publish_nav(self,x):
+        msg=Int32()
+        msg.data=x
+        self.nav_publisher.publish(msg)
+        print("Successfully publish nav_instruction!")
         
     def control(self):
         try:
-            if self.num==0:
-                self.pantil_deg_cmd.pitch=13.0
-                self.pantil_deg_cmd.yaw=0.0
-                self.pantil_deg_cmd.speed=10
-                self.pantil_pub.publish(self.pantil_deg_cmd)
-                self.release()
-                if self.set_group_pos([-1.5, 0.0, -1.3, -0.2]) == True :
-                    print('go home pos done!')
-                    self.num=1
-                    time.sleep(1.0)
-            if self.num>=1:
-                list=['waist','waist','shoulder','wrist_angle','elbow']
-                if self.num<=len(list)+1:
-                    now = rclpy.time.Time()
-                    trans = self.tf_buffer.lookup_transform("px100/base_link", "object_frame", now)
-                    pos=[]
-                    pos.append(trans.transform.translation.x)
-                    pos.append(trans.transform.translation.y)
-                    pos.append(trans.transform.translation.z)
-                    print('x: ', pos[0], 'y: ', pos[1], 'z: ', pos[2])
-                    theta=math.atan(pos[1]/pos[0])
-                    # pos[2]+=0.005
-                    T=create_pose_matrix(theta,pos)
-                    joint_pos=self.matrix_control(T,pos[1])
-                    self.separate_control(list,joint_pos)
+            if self.instruction==1:
+                if self.num==0:
+                    self.publish_nav(0)
+                    self.pantil_deg_cmd.pitch=13.0
+                    self.pantil_deg_cmd.yaw=0.0
+                    self.pantil_deg_cmd.speed=10
+                    self.pantil_pub.publish(self.pantil_deg_cmd)
+                    self.release()
+                    if self.set_group_pos([-1.5, 0.0, -1.3, -0.2]) == True :
+                        print('go home pos done!')
+                        self.num=1
+                        time.sleep(1.0)
+                if self.num>=1:
+                    list=['waist','waist','shoulder','wrist_angle','elbow']
+                    if self.num<=len(list)+1:
+                        now = rclpy.time.Time()
+                        trans = self.tf_buffer.lookup_transform("px100/base_link", "object_frame", now)
+                        pos=[]
+                        pos.append(trans.transform.translation.x)
+                        pos.append(trans.transform.translation.y)
+                        pos.append(trans.transform.translation.z)
+                        print('x: ', pos[0], 'y: ', pos[1], 'z: ', pos[2])
+                        theta=math.atan(pos[1]/pos[0])
+                        # pos[2]+=0.005
+                        T=create_pose_matrix(theta,pos)
+                        joint_pos=self.matrix_control(T,pos[1])
+                        self.separate_control(list,joint_pos)
+                    else:
+                        if self.num==len(list)+2:
+                            if self.set_group_pos([-1.5, 0.0, -1.3, 0.8]) ==True:
+                                print('back 1 done!')
+                                time.sleep(0.2)
+                                self.num+=1
+                        if self.num==len(list)+3:
+                            if self.set_group_pos([-1.5, 0.0, 1.3, -1.0]) ==True:
+                                print('The whole process done!')
+                                time.sleep(0.2)
+                                self.publish_nav(1)
+            elif self.instruction==2:
+                if self.release_flag==True:
+                    self.publish_nav(0)
+                    self.release()
+                    self.release_flag=False
                 else:
-                    if self.num==len(list)+2:
-                        if self.set_group_pos([-1.5, 0.0, -1.3, 0.8]) ==True:
-                            print('back 1 done!')
-                            time.sleep(0.2)
-                            self.num+=1
-                    if self.num==len(list)+3:
-                        if self.set_group_pos([-1.5, 0.0, 1.3, -1.0]) ==True:
-                            print('The whole process done!')
-                            time.sleep(0.2)                           
+                    self.publish_nav(2)                          
         except:
             pass
         pass

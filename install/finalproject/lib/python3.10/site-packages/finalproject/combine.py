@@ -2,17 +2,25 @@ from geometry_msgs.msg import PoseStamped
 from navigator import BasicNavigator, TaskResult
 from rclpy.duration import Duration
 import rclpy
+import time
 
+
+def create_pose(navigator,point):
+    pose = PoseStamped()
+    pose.header.frame_id = 'map'
+    pose.header.stamp = navigator.get_clock().now().to_msg()
+    pose.pose.position.x = point[0]
+    pose.pose.position.y = point[1]
+    pose.pose.orientation.z = point[2]
+    pose.pose.orientation.w = point[3]
+    return pose
+
+def go_to_pose(navigator,point):
+    navigator.goToPose(create_pose(navigator,point))
+    check_task_complete(navigator)
 
 def initial_pose_setup(navigator,initial_pose):
-    ## Set our initial pose
-    initial_pose.header.frame_id = 'map'
-    initial_pose.header.stamp = navigator.get_clock().now().to_msg()
-    initial_pose.pose.position.x = 0.27
-    initial_pose.pose.position.y = -0.38
-    initial_pose.pose.orientation.z = -0.68
-    initial_pose.pose.orientation.w = 0.72
-    navigator.setInitialPose(initial_pose)
+    navigator.setInitialPose(create_pose(navigator,initial_pose))
 
 
 def check_task_complete(navigator):
@@ -38,64 +46,34 @@ def check_task_complete(navigator):
     else:
         print('Goal has an invalid return status!')
 
-
-def S2A_pose_setup(navigator,goal_pose):
-    ## Go to our demos first goal pose (S->A)
-    goal_pose.header.frame_id = 'map'
-    goal_pose.header.stamp = navigator.get_clock().now().to_msg()
-    goal_pose.pose.position.x = 0.30    #0.32
-    goal_pose.pose.position.y = -2.9    #-3.0
-    goal_pose.pose.orientation.z = -0.68
-    goal_pose.pose.orientation.w = 0.72
-    navigator.goToPose(goal_pose)
-    check_task_complete(navigator)
-
-
-def A2B_pose_setup(navigator,goal_pose):
-    ## Go to our demos second goal pose (A->B)
-    # goal_pose = PoseStamped()
-    goal_pose.header.frame_id = 'map'
-    goal_pose.header.stamp = navigator.get_clock().now().to_msg()
-    goal_pose.pose.position.x = 2.5 #2.6
-    goal_pose.pose.position.y = -3.2
-    goal_pose.pose.orientation.z = 0.68
-    goal_pose.pose.orientation.w = -0.72
-    navigator.goToPose(goal_pose)
-    check_task_complete(navigator)
-
-
-def B2S_pose_setup(navigator,goal_pose):
-    ## Go to our demos third goal pose (B->S)
-    # goal_pose = PoseStamped() 
-    goal_pose.header.frame_id = 'map'
-    goal_pose.header.stamp = navigator.get_clock().now().to_msg()
-    goal_pose.pose.position.x = 0.27
-    goal_pose.pose.position.y = -0.38
-    goal_pose.pose.orientation.z = 0.68
-    goal_pose.pose.orientation.w = -0.72
-    navigator.goToPose(goal_pose)
-    check_task_complete(navigator)
-    
 def main():
     rclpy.init()
+    S=[0.27,-0.38,0.707,-0.707]
+    A=[0.27,-3.2,0.707,-0.707]
+    A1=[0.27,-3.2,0.0,1.0]
+    B=[2.7,-3.2,0.707,0.707]
     navigator = BasicNavigator()
-    initial_pose = PoseStamped()
-    goal_pose = PoseStamped()
     ## You may use the navigator to clear or obtain costmaps
     # navigator.clearAllCostmaps()  # also have clearLocalCostmap() and clearGlobalCostmap()
     # global_costmap = navigator.getGlobalCostmap()
     # local_costmap = navigator.getLocalCostmap()
-
-    initial_pose_setup(navigator,initial_pose)
+    initial_pose_setup(navigator,S)
+    navigator.publishInfo(0)
     navigator.waitUntilNav2Active()
     navigator.changeMap('/home/tony/map_project/map.yaml')  # map:=$HOME/map_project/map.yaml
-
-    S2A_pose_setup(navigator,goal_pose)
-    A2B_pose_setup(navigator,goal_pose)
-    
-    B2S_pose_setup(navigator,goal_pose)
-
-    exit(0)
+    go_to_pose(navigator,A)
+    navigator.publishInfo(1)
+    time.sleep(1)
+    while True:
+        rclpy.spin_once(navigator)
+        if navigator.instruction==1:
+            go_to_pose(navigator,A1)
+            go_to_pose(navigator,B)
+            navigator.publishInfo(2)
+            time.sleep(1)
+        elif navigator.instruction==2:
+            go_to_pose(navigator,S)
+            exit(0)
 
 
 if __name__ == '__main__':
