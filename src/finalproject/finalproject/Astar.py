@@ -5,6 +5,7 @@ from geometry_msgs.msg import PoseWithCovarianceStamped, PoseStamped
 import math
 import matplotlib.pyplot as plt
 import numpy as np
+from std_msgs.msg import Int32
 
 show_animation = True
 
@@ -223,9 +224,20 @@ class RobotAStarPlanner(Node):
         self.origin_y=0
         self.create_subscription(OccupancyGrid, '/global_costmap/costmap', self.map_callback, 10)
         self.create_subscription(PoseWithCovarianceStamped, '/initialpose', self.start_callback, 10)
+        self.create_subscription(Int32, 'astar_topic', self.state_callback, 10)
         # self.create_subscription(PoseStamped, '/goal_pose', self.goal_callback, 10)
         self.path_publisher = self.create_publisher(Path, 'path_topic', 10)
+        self.nav_publisher=self.create_publisher(Int32,'nav_topic',10)
         # self.pub_path=self.create_timer(0.5,self.caulculate_path)
+    
+    def state_callback(self,msg):
+        self.state=msg.data
+        print("Successfully get astar instruction")
+    
+    def nav_pub(self,x):
+        msg=Int32()
+        msg.data=x
+        self.nav_publisher.publish(msg)
     
     def map_callback(self, msg):
         self.pixwidth = msg.info.width
@@ -259,29 +271,22 @@ class RobotAStarPlanner(Node):
         return pose
     
     def start_callback(self, msg):
-        # self.start_pose = self.worldToMap(msg.pose.pose.position.x,msg.pose.pose.position.y)
-        self.start_pose_x = msg.pose.pose.position.x
-        self.start_pose_y = msg.pose.pose.position.y
-        # if len(self.obx)!=0:
-        #     self.start_pose=self.worldToMap(self.start_pose_x,self.start_pose_y)
-        #     if self.state==0:
-        #         A=[0.27,-3.2,0.707,-0.707]
-        #         goal=self.create_pose(A)
-        #         self.goal_pose = self.worldToMap(goal.pose.position.x,goal.pose.position.y)
-        #         print('goal pose: ',self.goal_pose)
-        #         self.Astar()
-        #         self.state+=1
-        print(self.start_pose_x,self.start_pose_y)
-        
-    def calculate_path(self):
-        self.start_pose=self.worldToMap(self.start_pose_x,self.start_pose_y)
         if self.state==0:
-            A=[0.27,-3.2,0.707,-0.707]
-            goal=self.create_pose(A)
+        # self.start_pose = self.worldToMap(msg.pose.pose.position.x,msg.pose.pose.position.y)
+            self.start_pose_x = msg.pose.pose.position.x
+            self.start_pose_y = msg.pose.pose.position.y
+            print(self.start_pose_x,self.start_pose_y)
+        
+    def calculate_path(self,goalpoint,resetStart=False):
+        if resetStart:
+            self.start_pose=self.goal_pose
+        else:
+            self.start_pose=self.worldToMap(self.start_pose_x,self.start_pose_y)
+            goal=self.create_pose(goalpoint)
             self.goal_pose = self.worldToMap(goal.pose.position.x,goal.pose.position.y)
             print('goal pose: ',self.goal_pose)
             self.Astar()
-            self.state+=1
+        
         
     def Astar(self):
         planner=AStarPlanner(self.obx,self.oby,self.resolution,0.3)
@@ -300,14 +305,35 @@ class RobotAStarPlanner(Node):
         print('Complete publishing path')        
         
 def main(args=None):
+    S=[0.27,-0.38,0.707,-0.707]
+    A=[0.20,-3.3,0.707,-0.707]
+    A1=[0.20,-3.3,0.707,0.707]
+    B=[2.7,-3.2,0.707,0.707]
     rclpy.init(args=args)
     astar_planner = RobotAStarPlanner()
     while astar_planner.origin_x!=-3.8 and astar_planner.origin_y!=-14.5:
         rclpy.spin_once(astar_planner)
-    astar_planner.calculate_path()
+    while True:
+        rclpy.spin_once(astar_planner)
+        if astar_planner.state==0:
+            astar_planner.calculate_path(A)
+            break
+    while True:
+        rclpy.spin_once(astar_planner)
+        if astar_planner.state==1:
+            astar_planner.calculate_path(B,resetStart=True)
+            astar_planner.nav_pub(1)
+            break
+    while True:
+        rclpy.spin_once(astar_planner)
+        if astar_planner.state==2:
+            astar_planner.calculate_path(S,resetStart=True)
+            astar_planner.nav_pub(2)
+            break
     astar_planner.destroy_node()
     print("Node has been destroied")
     rclpy.shutdown()
+
 
 if __name__ == '__main__':
     main()
