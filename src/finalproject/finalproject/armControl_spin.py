@@ -12,13 +12,25 @@ from geometry_msgs.msg import PoseArray, Pose, TransformStamped
 import math
 from pan_tilt_msgs.msg import PanTiltCmdDeg
 from std_msgs.msg import Int32
+from nav_msgs.msg import Odometry
 
+from rclpy.qos import QoSProfile
+from geometry_msgs.msg import Pose, Twist
+from rclpy.qos import ReliabilityPolicy
+#四元数转欧拉角，只记录航向角
+def QtoA(w,x,y,z):
+    y = math.atan2(2*(w*z+x*y),1-2*(z*z+y*y))
+    angleY = y*180/math.pi 
+    return angleY
+#计算距离
+def distance(x,y):
+        return math.sqrt(x*x+y*y)
 
 def create_pose_matrix(theta, translation):
-    # 构造旋转矩阵
-    rotation_matrix = np.array([[np.cos(theta), -np.sin(theta), 0],
-                                [np.sin(theta), np.cos(theta), 0],
-                                [0, 0, 1]])
+    # 构造绕 z 轴旋转的矩阵
+    rotation_matrix_z = np.array([[np.cos(theta), -np.sin(theta), 0],
+                                  [np.sin(theta), np.cos(theta), 0],
+                                  [0, 0, 1]])
 
     # 构造平移矩阵
     translation_vector = np.array([[translation[0]],
@@ -27,7 +39,7 @@ def create_pose_matrix(theta, translation):
 
     # 合并旋转矩阵和平移矩阵
     pose_matrix = np.eye(4)
-    pose_matrix[:3, :3] = rotation_matrix
+    pose_matrix[:3, :3] = rotation_matrix_z
     pose_matrix[:3, 3:4] = translation_vector
 
     return pose_matrix
@@ -46,14 +58,18 @@ class ArmController(Node):
         self.nav_publisher = self.create_publisher(Int32, 'nav_topic', 10)
         self.pub_timer = self.create_timer(0.5, self.control)
         
+        self.qos = QoSProfile(depth=10, reliability=ReliabilityPolicy.BEST_EFFORT)
+        self.move_sub = self.create_subscription(Odometry, '/odom', self.odom_callback, self.qos)
+        self.move_publisher = self.create_publisher(Twist, '/cmd_vel', 10)
+        
         self.tf_buffer=Buffer()
         self.tf_listener = TransformListener(self.tf_buffer, self)
-
+        self.side_length=0.3
         self.arm_command = JointSingleCommand()
         self.arm_group_command = JointGroupCommand()
         self.instruction=0
         self.num=0
-        
+        self.current_step=0
         self.joint_flag=[False,False,False]
         self.cnt = 0
         self.count=0
@@ -67,11 +83,20 @@ class ArmController(Node):
         self.initial_guesses[1][0] = np.deg2rad(-30)
         self.initial_guesses[2][0] = np.deg2rad(30)
         self.robot_des: mrd.ModernRoboticsDescription = getattr(mrd, 'px100')
-        
+        self.current_pose = None
+        self.init_position=None
         self.release_flag=True
         self.up=True
         self.machine_state = "INIT"
-
+        #前进距离
+        self.distance_togo = 0
+        #旋转角度
+        self.rotation_togo = 0
+        self.success_catch=False
+        self.togo=False
+        
+        self.rotate_count=0
+        
         self.gripper_pressure: float = 0.5
         self.gripper_pressure_lower_limit: int = 0
         self.gripper_pressure_upper_limit: int = 350
@@ -133,7 +158,7 @@ class ArmController(Node):
             if len(self.joint_pos) == 7:
                 match name:
                     case "waist":
-                        check_pos = self.joint_pos[0]
+                        check_pos = self.joint_pos[0]+0.07
                         cal_name = 'joint_waist'
                     case "shoulder":
                         check_pos = self.joint_pos[1]
@@ -235,7 +260,7 @@ class ArmController(Node):
                 M=self.robot_des.M,
                 T=T_sd,
                 thetalist0=guess,
-                eomg=0.005,
+                eomg=0.05,
                 ev=0.01
             )
             solution_found = True
@@ -251,14 +276,7 @@ class ArmController(Node):
 
             if solution_found:
                 if execute:
-                    if y<-0.05:
-                        joint_list = [theta_list[0]+0.05,theta_list[1]-0.06,theta_list[2], theta_list[3]]
-                    elif -0.05<=y<0.1:
-                        joint_list = [theta_list[0]+0.03,theta_list[1]-0.06,theta_list[2], theta_list[3]]
-                    elif 0.1<=y<0.14:
-                        joint_list = [theta_list[0]+0.02,theta_list[1]-0.06,theta_list[2], theta_list[3]]
-                    else:
-                        joint_list = [theta_list[0]+0.01,theta_list[1]-0.06,theta_list[2], theta_list[3]]
+                    joint_list = [theta_list[0]+0.08,theta_list[1]+0.2,theta_list[2], theta_list[3]]
                     print(joint_list)
                     self.T_sb = T_sd
                     return joint_list
@@ -271,28 +289,88 @@ class ArmController(Node):
             if self.set_group_pos(joint_pos) ==True:
                 self.waist=joint_pos[0]
                 print('Done!')
-                time.sleep(1.0)
                 self.grasp()
                 self.num+=1
+                time.sleep(1)
                 return
-        name=list[self.num-1]
-        match name:
-            case 'waist':
-                pos=joint_pos[0]
-            case 'shoulder':
-                pos=joint_pos[1]
-            case 'elbow':
-                pos=joint_pos[2]
-            case 'wrist_angle':
-                pos=joint_pos[3]
-        if self.set_single_pos (name,pos)==True:
-            self.num+=1
+        if self.num-1<len(list):
+            name=list[self.num-1]
+            match name:
+                case 'waist':
+                    pos=joint_pos[0]
+                case 'shoulder':
+                    pos=joint_pos[1]
+                case 'elbow':
+                    pos=joint_pos[2]
+                case 'wrist_angle':
+                    pos=joint_pos[3]
+            if self.set_single_pos (name,pos)==True:
+                self.num+=1
     
     def publish_nav(self,x):
         msg=Int32()
         msg.data=x
         self.nav_publisher.publish(msg)
         print("Successfully publish nav_instruction!")
+    
+    
+    def init_pos(self,msg):
+        self.init_position=msg.pose.pose.position
+        self.init_orientation=QtoA(msg.pose.pose.orientation.w,msg.pose.pose.orientation.x,msg.pose.pose.orientation.y,msg.pose.pose.orientation.z)
+
+    def odom_callback(self, msg):
+        # 初始化位置和姿态信息 （加入初始信息）
+        if  self.init_position is None or self.togo is True:
+            self.init_pos(msg)
+        # 提取角度和线性位移信息
+        self.position = msg.pose.pose.position
+        self.orientation = QtoA(msg.pose.pose.orientation.w,msg.pose.pose.orientation.x,msg.pose.pose.orientation.y,msg.pose.pose.orientation.z)
+        #计算角度变化量
+        self.deltaA=math.fabs(self.init_orientation-self.orientation)
+        #计算线性位移变化量
+        self.deltax=math.fabs(self.init_position.x-self.position.x)
+        self.deltay=math.fabs(self.init_position.y-self.position.y)
+        self.deltaz=math.fabs(self.init_position.z-self.position.z)
+        #计算线性位移
+        self.distance=distance(self.deltax,self.deltay)
+        
+        
+        # 进行两步后停止 
+        if self.current_step>1:
+            self.rotate(0.0)
+            self.move(0.0)
+            self.current_step=0
+            self.distance_togo=0
+            self.rotation_togo=0
+        elif self.current_step  == 0:
+            # 步骤0：机器人旋转180度
+            if self.rotation_togo!=0:
+                self.move(0.0)
+                if self.deltaA >= self.rotation_togo:
+                    self.rotate(0.0)
+                    self.current_step += 1
+                else:
+                    self.rotate(0.1)
+        elif self.current_step  == 1:
+            if self.distance_togo!=0:
+                # 步骤1：机器人向前进1米
+                self.rotate(0.0)
+                if self.distance >= self.distance_togo:
+                    self.move(0.0)
+                    self.current_step += 1
+                else:
+                    self.move(0.01)
+            
+    def move(self,speed):
+        msg=Twist()
+        msg.linear.x=speed
+        self.move_publisher.publish(msg)
+    
+    def rotate(self,speed):
+        msg=Twist()
+        msg.angular.z=speed
+        self.move_publisher.publish(msg)
+            
         
     def control(self):
         try:
@@ -304,25 +382,79 @@ class ArmController(Node):
                     self.pantil_deg_cmd.speed=10
                     self.pantil_pub.publish(self.pantil_deg_cmd)
                     self.release()
-                    if self.set_group_pos([-1.5, 0.0, -1.3, -0.2]) == True :
+                    if self.set_group_pos([-1.5, -0.4, 0.5, -0.9]) == True :
                         print('go home pos done!')
                         self.num=1
                         time.sleep(1.0)
                 if self.num>=1:
-                    list=['waist','waist','shoulder','wrist_angle','elbow']
+                    list=['waist','waist']
                     if self.num<=len(list)+1:
                         now = rclpy.time.Time()
-                        trans = self.tf_buffer.lookup_transform("px100/base_link", "object_frame", now)
-                        pos=[]
-                        pos.append(trans.transform.translation.x)
-                        pos.append(trans.transform.translation.y)
-                        pos.append(trans.transform.translation.z)
-                        print('x: ', pos[0], 'y: ', pos[1], 'z: ', pos[2])
-                        theta=math.atan(pos[1]/pos[0])
-                        # pos[2]+=0.005
-                        T=create_pose_matrix(theta,pos)
-                        joint_pos=self.matrix_control(T,pos[1])
-                        self.separate_control(list,joint_pos)
+                        if self.togo==True:
+                            if self.rotate_count<5:
+                                time.sleep(1)
+                                self.rotate(1.2)
+                                self.rotate_count+=1
+                            elif self.rotate_count>=5 and self.rotate_count<7:
+                                time.sleep(1)
+                                self.rotate(0.0)
+                                self.move(0.1)
+                                self.rotate_count+=1
+                            elif self.rotate_count>=7 and self.rotate_count<12:
+                                time.sleep(1)
+                                self.rotate(1.4)
+                                self.rotate_count+=1
+                            else:
+                                self.rotate(0.0)
+                                self.move(0.0)
+                                time.sleep(3)
+                                self.togo=False
+                        else:
+                            try: 
+                                trans = self.tf_buffer.lookup_transform("px100/base_link", "object_frame", now)
+                                pos=[]
+                                pos.append(trans.transform.translation.x)
+                                pos.append(trans.transform.translation.y)
+                                pos.append(trans.transform.translation.z)
+                                print('x: ', pos[0], 'y: ', pos[1], 'z: ', pos[2])
+                                theta=math.atan(pos[1]/pos[0])
+                                if pos[0]<0.25:
+                                    # 太近  执行后退
+                                    self.togo=True
+                                    
+                                elif pos[0]>0.28 and self.success_catch==False:
+                                    #没抓住且距离太远  前进
+                                    self.rotate(0.0)
+                                    self.move(0.02)
+                                else:
+                                    #距离合适
+                                    self.move(0.0)
+                                    if abs(theta)>0.1 and self.success_catch==False:
+                                        #角度偏差过大且没抓住  旋转
+                                        if theta<0:
+                                            self.rotate(-0.01)
+                                        elif theta>0:
+                                            self.rotate(0.01)
+                                        else:
+                                            pass
+                                    else:
+                                        #成功判定可以抓取物体
+                                        self.rotate(0.0)
+                                        self.move(0.0)
+                                        T=create_pose_matrix(theta,pos)
+                                        joint_pos=self.matrix_control(T,pos[1])
+                                        self.success_catch=True
+                                        self.separate_control(list,joint_pos)
+                            except:
+                                #已经判定可以抓住物体就不在移动
+                                if self.success_catch==True:
+                                    self.rotate(0.0)
+                                    self.move(0.0)
+                                #没有看到就旋转
+                                else:
+                                    self.move(0.0)
+                                    self.rotate(0.04)
+                
                     else:
                         if self.num==len(list)+2:
                             if self.set_group_pos([-1.5, 0.0, -1.3, 0.8]) ==True:

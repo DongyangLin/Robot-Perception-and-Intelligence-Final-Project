@@ -14,6 +14,7 @@ from nav2_msgs.action import ComputePathThroughPoses, ComputePathToPose
 from nav2_msgs.action import FollowPath, FollowWaypoints, NavigateThroughPoses, NavigateToPose
 from nav2_msgs.action import SmoothPath
 from nav2_msgs.srv import ClearEntireCostmap, GetCostmap, LoadMap, ManageLifecycleNodes
+from nav_msgs.msg import Path
 
 import rclpy
 from rclpy.action import ActionClient
@@ -43,6 +44,7 @@ class BasicNavigator(Node):
         self.status = None
         self.state=0
         self.instruction=0
+        self.path=None
         
         amcl_pose_qos = QoSProfile(
           durability=QoSDurabilityPolicy.TRANSIENT_LOCAL,
@@ -82,8 +84,17 @@ class BasicNavigator(Node):
         
         self.arm_publisher=self.create_publisher(Int32,'arm_topic',10)
         self.arm_subscriber=self.create_subscription(Int32,'nav_topic',self.getInstruction,10)
+        self.paht_subscriber=self.create_subscription(Path,'path_topic',self.AsartPath,10)
     
-    
+    def AsartPath(self,msg):
+        reversed_poses = list(reversed(msg.poses))
+        reversed_path = Path()
+        reversed_path.header.frame_id='map'
+        reversed_path.header.stamp = self.get_clock().now().to_msg()
+        reversed_path.poses=reversed_poses
+        self.path=reversed_path
+        print("Successfully get AsartPath!")
+        
     def getInstruction(self,msg):
         print("Navigator successfully get instruction!")
         self.instruction=msg.data
@@ -640,19 +651,27 @@ def check_task_complete(navigator):
 def main():
     rclpy.init()
     S=[0.27,-0.38,0.707,-0.707]
-    A=[0.27,-3.2,0.707,-0.707]
-    A1=[0.27,-3.2,0.0,1.0]
+    A=[0.20,-3.3,0.707,-0.707]
+    A1=[0.20,-3.3,0.707,0.707]
     B=[2.7,-3.2,0.707,0.707]
     navigator = BasicNavigator()
     rotate=True
-    ## You may use the navigator to clear or obtain costmaps
-    # navigator.clearAllCostmaps()  # also have clearLocalCostmap() and clearGlobalCostmap()
-    # global_costmap = navigator.getGlobalCostmap()
-    # local_costmap = navigator.getLocalCostmap()
-    initial_pose_setup(navigator,S)
-    navigator.publishInfo(0)
     navigator.waitUntilNav2Active()
     navigator.changeMap('/home/tony/map_project/map.yaml')  # map:=$HOME/map_project/map.yaml
+    initial_pose_setup(navigator,S)
+    navigator.publishInfo(0)
+    
+    
+    # """
+    # Astar path
+    # """
+    # navigator.waitUntilNav2Active()
+    # navigator.changeMap('/home/tony/map_project/map.yaml')
+    # initial_pose_setup(navigator,S)
+    # while navigator.path is None:
+    #     rclpy.spin_once(navigator)
+    # navigator.followPath(navigator.path)
+    
     go_to_pose(navigator,A)
     navigator.publishInfo(1)
     time.sleep(1)
