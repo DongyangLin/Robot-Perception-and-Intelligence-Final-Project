@@ -672,10 +672,10 @@ def main():
     while navigator.path is None:
         rclpy.spin_once(navigator)
     navigator.followPath(navigator.path)
-        # navigator.publishInfo(1)
     check_task_complete(navigator)
     print("Successfully reach the A point!")
-    navigator.pubAstar(1)
+    # navigator.pubAstar(1)
+    navigator.publishInfo(1)
     while True:
         rclpy.spin_once(navigator)
         if navigator.instruction==1:
@@ -683,8 +683,8 @@ def main():
             navigator.followPath(navigator.path)
             check_task_complete(navigator)
             print("Successfully reach the B point!")
-            navigator.pubAstar(2)
-            # navigator.publishInfo(2)
+            # navigator.pubAstar(2)
+            navigator.publishInfo(2)
             time.sleep(1)
             break
     while True:
