@@ -12,14 +12,13 @@ show_animation = True
 
 class AStarPlanner:
 
-    def __init__(self, ox, oy, resolution, rr):
+    def __init__(self, ox, oy, resolution):
         """Initialize grid map for a star planning
         ox: x position list of Obstacles [m]
         oy: y position list of Obstacles [m]
         resolution: grid resolution [m]
         rr: robot radius[m]"""
         self.resolution = resolution
-        self.rr = rr
         self.min_x, self.min_y = 0, 0
         self.max_x, self.max_y = 0, 0
         self.obstacle_map = None
@@ -264,6 +263,7 @@ class RobotAStarPlanner(Node):
     def create_pose(self,point):
         pose = PoseStamped()
         pose.header.frame_id = 'map'
+        pose.header.stamp = self.get_clock().now().to_msg()
         pose.pose.position.x = point[0]
         pose.pose.position.y = point[1]
         pose.pose.orientation.z = point[2]
@@ -277,19 +277,18 @@ class RobotAStarPlanner(Node):
             self.start_pose_y = msg.pose.pose.position.y
             print(self.start_pose_x,self.start_pose_y)
         
-    def calculate_path(self,goalpoint,resetStart=False):
-        if resetStart:
-            self.start_pose=self.goal_pose
-        else:
-            self.start_pose=self.worldToMap(self.start_pose_x,self.start_pose_y)
-            goal=self.create_pose(goalpoint)
-            self.goal_pose = self.worldToMap(goal.pose.position.x,goal.pose.position.y)
-            print('goal pose: ',self.goal_pose)
-            self.Astar()
+    def calculate_path(self,startpoint,goalpoint):
+        start=self.create_pose(startpoint)
+        self.start_pose = self.worldToMap(start.pose.position.x,start.pose.position.y)
+        goal=self.create_pose(goalpoint)
+        self.goal_pose = self.worldToMap(goal.pose.position.x,goal.pose.position.y)
+        print('start pose: ',self.start_pose)
+        print('goal pose: ',self.goal_pose)
+        self.Astar()
         
         
     def Astar(self):
-        planner=AStarPlanner(self.obx,self.oby,self.resolution,0.3)
+        planner=AStarPlanner(self.obx,self.oby,self.resolution)
         rx,ry=planner.planning(self.start_pose[0],self.start_pose[1],self.goal_pose[0],self.goal_pose[1])
         print("rx:",rx)
         print("ry:",ry)
@@ -298,6 +297,7 @@ class RobotAStarPlanner(Node):
         for i in range(len(rx)):
             pose=PoseStamped()
             pose.header.frame_id='map'
+            pose.header.stamp=self.get_clock().now().to_msg()
             pose.pose.position.x=rx[i]*self.resolution+self.origin_x
             pose.pose.position.y=ry[i]*self.resolution+self.origin_y
             msg.poses.append(pose)
@@ -316,19 +316,22 @@ def main(args=None):
     while True:
         rclpy.spin_once(astar_planner)
         if astar_planner.state==0:
-            astar_planner.calculate_path(A)
+            astar_planner.calculate_path(S,A)
+            print("S to A")
             break
     while True:
         rclpy.spin_once(astar_planner)
         if astar_planner.state==1:
-            astar_planner.calculate_path(B,resetStart=True)
+            astar_planner.calculate_path(A,B)
             astar_planner.nav_pub(1)
+            print('A to B')
             break
     while True:
         rclpy.spin_once(astar_planner)
         if astar_planner.state==2:
-            astar_planner.calculate_path(S,resetStart=True)
+            astar_planner.calculate_path(B,S)
             astar_planner.nav_pub(2)
+            print('B to S')
             break
     astar_planner.destroy_node()
     print("Node has been destroied")

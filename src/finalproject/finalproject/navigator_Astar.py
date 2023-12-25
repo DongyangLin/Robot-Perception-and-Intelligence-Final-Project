@@ -82,9 +82,16 @@ class BasicNavigator(Node):
         self.get_costmap_global_srv = self.create_client(GetCostmap, '/global_costmap/get_costmap')
         self.get_costmap_local_srv = self.create_client(GetCostmap, '/local_costmap/get_costmap')
         
+        self.astar_publisher=self.create_publisher(Int32,'astar_topic',10)
         self.arm_publisher=self.create_publisher(Int32,'arm_topic',10)
         self.arm_subscriber=self.create_subscription(Int32,'nav_topic',self.getInstruction,10)
         self.paht_subscriber=self.create_subscription(Path,'path_topic',self.AsartPath,10)
+    
+    def pubAstar(self,x):
+        msg=Int32()
+        msg.data=x
+        self.astar_publisher.publish(msg)
+        print("Successfully publish astar_instruction!")
     
     def AsartPath(self,msg):
         reversed_poses = list(reversed(msg.poses))
@@ -628,16 +635,17 @@ def initial_pose_setup(navigator,initial_pose):
 def check_task_complete(navigator):
     i=0
     while not navigator.isTaskComplete():
-        i=i+1
+        i += 1
         feedback = navigator.getFeedback()
-        if feedback and i%5==0:
+        if feedback and i % 5 == 0:
             print(
-                'Estimated time of arrival: '+ '{0:.0f}'.format(
-                    rclpyDuration.from_msg(feedback.estimated_time_remaining).nanoseconds/ 1e9
-                ) + ' seconds.'
+                'Estimated distance remaining to goal position: '
+                + '{0:.3f}'.format(feedback.distance_to_goal)
+                + '\nCurrent speed of the robot: '
+                + '{0:.3f}'.format(feedback.speed)
             )
-            if rclpyDuration.from_msg(feedback.navigation_time) > rclpyDuration(seconds=600.0):
-                navigator.cancelTask()
+
+    # Do something depending on the return code
     result = navigator.getResult()
     if result == TaskResult.SUCCEEDED:
         print('Goal succeeded!')
@@ -664,19 +672,27 @@ def main():
     while navigator.path is None:
         rclpy.spin_once(navigator)
     navigator.followPath(navigator.path)
-    navigator.publishInfo(1)
+        # navigator.publishInfo(1)
+    check_task_complete(navigator)
+    print("Successfully reach the A point!")
+    navigator.pubAstar(1)
     while True:
         rclpy.spin_once(navigator)
         if navigator.instruction==1:
-            go_to_pose(navigator,A1)
+            # go_to_pose(navigator,A1)
             navigator.followPath(navigator.path)
-            navigator.publishInfo(2)
+            check_task_complete(navigator)
+            print("Successfully reach the B point!")
+            navigator.pubAstar(2)
+            # navigator.publishInfo(2)
             time.sleep(1)
             break
     while True:
         rclpy.spin_once(navigator)
         if navigator.instruction==2:
             navigator.followPath(navigator.path)
+            check_task_complete(navigator)
+            print("Successfully reach the S point!")
             time.sleep(1)
             exit(0)
 
