@@ -663,6 +663,7 @@ def main():
     A1=[0.20,-3.3,0.707,0.707]
     B=[2.7,-3.2,0.707,0.707]
     navigator = BasicNavigator()
+    rotate=True
     """
     Astar path
     """
@@ -679,7 +680,10 @@ def main():
     while True:
         rclpy.spin_once(navigator)
         if navigator.instruction==1:
-            # go_to_pose(navigator,A1)
+            if rotate:
+                go_to_pose(navigator,A1)
+                check_task_complete(navigator)
+                rotate=False
             navigator.followPath(navigator.path)
             check_task_complete(navigator)
             print("Successfully reach the B point!")
